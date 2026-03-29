@@ -50,6 +50,11 @@ function processMessage(message, thread, rules) {
   for (const rule of matchedRules) {
     const actions = rule.actions || {};
 
+    if (actions.trash) {
+      thread.moveToTrash();
+      Logger.log(`  → 규칙 '${rule.name}' 적용 완료 (trash=true)`);
+      return; // 삭제된 메일은 이후 규칙 적용 불필요
+    }
     if (actions.label) {
       thread.addLabel(getOrCreateLabel(actions.label));
     }
@@ -105,13 +110,73 @@ function getRules() {
 function setRules() {
   const jsonString = JSON.stringify([
     {
+      "name": "ADV 광고 삭제",
+      "conditions": {
+        "keywords": ["ADV"]
+      },
+      "match": "any",
+      "actions": {
+        "trash": true
+      }
+    },
+    {
       "name": "DBS 은행알림",
       "conditions": {
         "sender": ["ibanking.alert@dbs.com"]
       },
       "match": "any",
       "actions": {
-        "label": "은행알림",
+        "label": "Singapore/Banks/DBS",
+        "mark_read": true
+      }
+    },
+    {
+      "name": "GXS 은행알림",
+      "conditions": {
+        "sender": ["no-reply@gxs.com.sg"]
+      },
+      "match": "any",
+      "actions": {
+        "label": "Singapore/Banks/GXS",
+        "mark_read": true
+      }
+    },
+    {
+      "name": "Citi 은행알림",
+      "conditions": {
+        "sender": ["alerts@citibank.com.sg"]
+      },
+      "match": "any",
+      "actions": {
+        "label": "Singapore/Banks/Citi",
+        "mark_read": true
+      }
+    },
+    {
+      "name": "SC 은행알림",
+      "conditions": {
+        "sender": ["OnlineBanking.SG@sc.com"]
+      },
+      "match": "any",
+      "actions": {
+        "label": "Singapore/Banks/SC",
+        "mark_read": true
+      }
+    },
+    {
+      "name": "쇼핑",
+      "conditions": {
+        "sender": [
+          "noreply@support.lazada.sg",
+          "noreply@ninjavan.co",
+          "no-reply@jtexpress.sg",
+          "no-reply@fairprice.com.sg",
+          "no-reply@lockeralliance.net"
+        ]
+      },
+      "match": "any",
+      "actions": {
+        "label": "Shopping",
         "mark_read": true
       }
     }
