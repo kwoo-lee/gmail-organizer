@@ -45,14 +45,12 @@ function processMessage(message, thread, rules) {
   const matchedRules = matchRules(email, rules);
   if (matchedRules.length === 0) return;
 
-  Logger.log(`매칭된 메일: [${email.from}] ${email.subject}`);
-
   for (const rule of matchedRules) {
     const actions = rule.actions || {};
 
     if (actions.trash) {
       thread.moveToTrash();
-      Logger.log(`  → 규칙 '${rule.name}' 적용 완료 (trash=true)`);
+      Logger.log(`[TRASH] 규칙: '${rule.name}' | 발신: ${email.from} | 제목: ${email.subject}`);
       return; // 삭제된 메일은 이후 규칙 적용 불필요
     }
     if (actions.label) {
@@ -62,7 +60,7 @@ function processMessage(message, thread, rules) {
       message.markRead();
     }
 
-    Logger.log(`  → 규칙 '${rule.name}' 적용 완료 (label=${actions.label}, mark_read=${actions.mark_read})`);
+    Logger.log(`[PROCESSED] 규칙: '${rule.name}' | 라벨: ${actions.label || '-'} | 읽음: ${actions.mark_read || false} | 발신: ${email.from} | 제목: ${email.subject}`);
   }
 }
 
