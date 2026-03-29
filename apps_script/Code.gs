@@ -190,6 +190,45 @@ function printRules() {
 }
 
 
+// ==================== 전체 메일함 처리 ====================
+// 처음 한 번 수동으로 실행하여 기존 메일함 전체를 정리할 때 사용
+function processAll() {
+  const rules = getRules();
+  if (!rules || rules.length === 0) {
+    Logger.log('규칙이 없습니다. setRules()를 먼저 실행해주세요.');
+    return;
+  }
+
+  let start = 0;
+  const batchSize = 100;
+  let totalProcessed = 0;
+  let totalMatched = 0;
+
+  while (true) {
+    const threads = GmailApp.search('in:inbox', start, batchSize);
+    if (threads.length === 0) break;
+
+    for (const thread of threads) {
+      for (const message of thread.getMessages()) {
+        const email = { from: message.getFrom(), subject: message.getSubject() };
+        const matchedRules = matchRules(email, rules);
+        if (matchedRules.length > 0) {
+          processMessage(message, thread, rules);
+          totalMatched++;
+        }
+        totalProcessed++;
+      }
+    }
+
+    Logger.log(`${start + threads.length}개 스레드 스캔 완료...`);
+    start += batchSize;
+    if (threads.length < batchSize) break;
+  }
+
+  Logger.log(`processAll 완료: 총 ${totalProcessed}개 메시지 스캔, ${totalMatched}개 규칙 적용`);
+}
+
+
 // ==================== 트리거 설정 ====================
 function createTrigger() {
   // 기존 main 트리거 삭제 후 재생성
