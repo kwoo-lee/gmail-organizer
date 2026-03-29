@@ -1,13 +1,12 @@
 // ==================== 상수 ====================
-const RULES_KEY = 'GMAIL_RULES';
-const LAST_CHECK_KEY = 'LAST_CHECK_TIME';
-
+const RULES_KEY = "GMAIL_RULES";
+const LAST_CHECK_KEY = "LAST_CHECK_TIME";
 
 // ==================== 메인 실행 ====================
 function main() {
   const rules = getRules();
   if (!rules || rules.length === 0) {
-    Logger.log('규칙이 없습니다. initializeRules()를 먼저 실행해주세요.');
+    Logger.log("규칙이 없습니다. initializeRules()를 먼저 실행해주세요.");
     return;
   }
 
@@ -31,9 +30,11 @@ function main() {
     Logger.log(`${processedCount}개 메시지 처리 완료`);
   }
 
-  PropertiesService.getScriptProperties().setProperty(LAST_CHECK_KEY, now.toISOString());
+  PropertiesService.getScriptProperties().setProperty(
+    LAST_CHECK_KEY,
+    now.toISOString(),
+  );
 }
-
 
 // ==================== 메시지 처리 ====================
 function processMessage(message, thread, rules) {
@@ -50,7 +51,9 @@ function processMessage(message, thread, rules) {
 
     if (actions.trash) {
       thread.moveToTrash();
-      Logger.log(`[TRASH] 규칙: '${rule.name}' | 발신: ${email.from} | 제목: ${email.subject}`);
+      Logger.log(
+        `[TRASH] 규칙: '${rule.name}' | 발신: ${email.from} | 제목: ${email.subject}`,
+      );
       return; // 삭제된 메일은 이후 규칙 적용 불필요
     }
     if (actions.label) {
@@ -61,42 +64,45 @@ function processMessage(message, thread, rules) {
       message.markRead();
     }
 
-    Logger.log(`[PROCESSED] 규칙: '${rule.name}' | 라벨: ${actions.label || '-'} | 읽음: ${actions.mark_read || false} | 발신: ${email.from} | 제목: ${email.subject}`);
+    Logger.log(
+      `[PROCESSED] 규칙: '${rule.name}' | 라벨: ${actions.label || "-"} | 읽음: ${actions.mark_read || false} | 발신: ${email.from} | 제목: ${email.subject}`,
+    );
   }
 }
 
-
 // ==================== 규칙 엔진 ====================
 function matchRules(email, rules) {
-  return rules.filter(rule => checkRule(rule, email));
+  return rules.filter((rule) => checkRule(rule, email));
 }
 
 function checkRule(rule, email) {
   const conditions = rule.conditions || {};
-  const matchType = rule.match || 'any';
+  const matchType = rule.match || "any";
   const results = [];
 
   if (conditions.sender && conditions.sender.length > 0) {
     const senderLower = email.from.toLowerCase();
-    results.push(conditions.sender.some(s => senderLower.includes(s.toLowerCase())));
+    results.push(
+      conditions.sender.some((s) => senderLower.includes(s.toLowerCase())),
+    );
   }
 
   if (conditions.keywords && conditions.keywords.length > 0) {
     const subjectLower = email.subject.toLowerCase();
-    results.push(conditions.keywords.some(kw => subjectLower.includes(kw.toLowerCase())));
+    results.push(
+      conditions.keywords.some((kw) => subjectLower.includes(kw.toLowerCase())),
+    );
   }
 
   if (results.length === 0) return false;
-  return matchType === 'all' ? results.every(Boolean) : results.some(Boolean);
+  return matchType === "all" ? results.every(Boolean) : results.some(Boolean);
 }
-
 
 // ==================== 라벨 관리 ====================
 function getOrCreateLabel(name) {
   const label = GmailApp.getUserLabelByName(name) || GmailApp.createLabel(name);
   return label;
 }
-
 
 // ==================== 규칙 관리 ====================
 function getRules() {
@@ -107,96 +113,161 @@ function getRules() {
 
 // 규칙을 업데이트할 때 이 함수의 jsonString을 수정하고 실행하세요
 function setRules() {
-  const jsonString = JSON.stringify([
-    {
-      "name": "ADV 광고 삭제",
-      "conditions": {
-        "keywords": ["ADV"]
+  const jsonString = JSON.stringify(
+    [
+      {
+        name: "ADV 광고 삭제",
+        conditions: {
+          keywords: ["ADV"],
+        },
+        match: "any",
+        actions: {
+          trash: true,
+        },
       },
-      "match": "any",
-      "actions": {
-        "trash": true
-      }
-    },
-    {
-      "name": "DBS 은행알림",
-      "conditions": {
-        "sender": ["ibanking.alert@dbs.com"]
+      {
+        name: "DBS 은행알림",
+        conditions: {
+          sender: ["ibanking.alert@dbs.com"],
+        },
+        match: "any",
+        actions: {
+          label: "Singapore/Banks/DBS",
+          mark_read: true,
+        },
       },
-      "match": "any",
-      "actions": {
-        "label": "Singapore/Banks/DBS",
-        "mark_read": true
-      }
-    },
-    {
-      "name": "GXS 은행알림",
-      "conditions": {
-        "sender": ["no-reply@gxs.com.sg"]
+      {
+        name: "GXS 은행알림",
+        conditions: {
+          sender: ["no-reply@gxs.com.sg"],
+        },
+        match: "any",
+        actions: {
+          label: "Singapore/Banks/GXS",
+          mark_read: true,
+        },
       },
-      "match": "any",
-      "actions": {
-        "label": "Singapore/Banks/GXS",
-        "mark_read": true
-      }
-    },
-    {
-      "name": "Citi 은행알림",
-      "conditions": {
-        "sender": ["alerts@citibank.com.sg"]
+      {
+        name: "Citi 은행알림",
+        conditions: {
+          sender: ["alerts@citibank.com.sg"],
+        },
+        match: "any",
+        actions: {
+          label: "Singapore/Banks/Citi",
+          mark_read: true,
+        },
       },
-      "match": "any",
-      "actions": {
-        "label": "Singapore/Banks/Citi",
-        "mark_read": true
-      }
-    },
-    {
-      "name": "SC 은행알림",
-      "conditions": {
-        "sender": ["OnlineBanking.SG@sc.com"]
+      {
+        name: "SC 은행알림",
+        conditions: {
+          sender: ["OnlineBanking.SG@sc.com"],
+        },
+        match: "any",
+        actions: {
+          label: "Singapore/Banks/SC",
+          mark_read: true,
+        },
       },
-      "match": "any",
-      "actions": {
-        "label": "Singapore/Banks/SC",
-        "mark_read": true
-      }
-    },
-    {
-      "name": "쇼핑",
-      "conditions": {
-        "sender": [
-          "noreply@support.lazada.sg",
-          "noreply@ninjavan.co",
-          "no-reply@jtexpress.sg",
-          "no-reply@fairprice.com.sg",
-          "no-reply@lockeralliance.net"
-        ]
+      {
+        name: "쇼핑",
+        conditions: {
+          sender: [
+            "noreply@support.lazada.sg",
+            "noreply@ninjavan.co",
+            "no-reply@jtexpress.sg",
+            "no-reply@fairprice.com.sg",
+            "no-reply@lockeralliance.net",
+            "shipment-tracking@amazon.sg",
+          ],
+        },
+        match: "any",
+        actions: {
+          label: "Shopping",
+          mark_read: true,
+        },
       },
-      "match": "any",
-      "actions": {
-        "label": "Shopping",
-        "mark_read": true
-      }
-    }
-  ], null, 2);
+      {
+        name: "택시",
+        conditions: {
+          sender: [
+            "no-reply@grab.com",
+            "hailing@tada.global",
+          ],
+        },
+        match: "any",
+        actions: {
+          label: "Taxi",
+          mark_read: true,
+        },
+      },
+      {
+        name: "SP Group 청구서",
+        conditions: {
+          sender: ["ebillsummary@spgroup.com.sg"],
+        },
+        match: "any",
+        actions: {
+          label: "Singapore/SP",
+          mark_read: false,
+        },
+      },
+      {
+        name: "SP Digital",
+        conditions: {
+          sender: ["do-not-reply@spdigital.sg"],
+        },
+        match: "any",
+        actions: {
+          label: "Singapore/SP",
+          mark_read: true,
+        },
+      },
+      {
+        name: "Moomoo",
+        conditions: {
+          sender: ["no_reply@stmt.sg.moomoo.com"],
+        },
+        match: "any",
+        actions: {
+          label: "Singapore/Moomoo",
+          mark_read: true,
+        },
+      },
+      {
+        name: "Phone & Internet",
+        conditions: {
+          sender: [
+            "billalert@ebill.starhub.com",
+            "no-reply@digital.singtel.com",
+          ],
+        },
+        match: "any",
+        actions: {
+          label: "Singapore/Phone&Internet",
+          mark_read: true,
+        },
+      },
+    ],
+    null,
+    2,
+  );
 
   PropertiesService.getScriptProperties().setProperty(RULES_KEY, jsonString);
-  Logger.log('규칙 저장 완료:\n' + jsonString);
+  Logger.log("규칙 저장 완료:\n" + jsonString);
 }
 
 function printRules() {
   const json = PropertiesService.getScriptProperties().getProperty(RULES_KEY);
-  Logger.log(json || '저장된 규칙이 없습니다.');
+  Logger.log(json || "저장된 규칙이 없습니다.");
 }
-
 
 // ==================== 전체 메일함 처리 ====================
 // 처음 한 번 수동으로 실행하여 기존 메일함 전체를 정리할 때 사용
 function processAll() {
   const rules = getRules();
   if (!rules || rules.length === 0) {
-    Logger.log('규칙이 없습니다. setRules()를 먼저 실행해주세요.');
+    Logger.log("규칙이 없습니다. setRules()를 먼저 실행해주세요.");
     return;
   }
 
@@ -206,12 +277,15 @@ function processAll() {
   let totalMatched = 0;
 
   while (true) {
-    const threads = GmailApp.search('in:inbox', start, batchSize);
+    const threads = GmailApp.search("in:inbox", start, batchSize);
     if (threads.length === 0) break;
 
     for (const thread of threads) {
       for (const message of thread.getMessages()) {
-        const email = { from: message.getFrom(), subject: message.getSubject() };
+        const email = {
+          from: message.getFrom(),
+          subject: message.getSubject(),
+        };
         const matchedRules = matchRules(email, rules);
         if (matchedRules.length > 0) {
           processMessage(message, thread, rules);
@@ -226,37 +300,35 @@ function processAll() {
     if (threads.length < batchSize) break;
   }
 
-  Logger.log(`processAll 완료: 총 ${totalProcessed}개 메시지 스캔, ${totalMatched}개 규칙 적용`);
+  Logger.log(
+    `processAll 완료: 총 ${totalProcessed}개 메시지 스캔, ${totalMatched}개 규칙 적용`,
+  );
 }
-
 
 // ==================== 트리거 설정 ====================
 function createTrigger() {
   // 기존 main 트리거 삭제 후 재생성
   ScriptApp.getProjectTriggers()
-    .filter(t => t.getHandlerFunction() === 'main')
-    .forEach(t => ScriptApp.deleteTrigger(t));
+    .filter((t) => t.getHandlerFunction() === "main")
+    .forEach((t) => ScriptApp.deleteTrigger(t));
 
-  ScriptApp.newTrigger('main')
-    .timeBased()
-    .everyMinutes(1)
-    .create();
+  ScriptApp.newTrigger("main").timeBased().everyMinutes(1).create();
 
-  Logger.log('트리거 생성 완료: main() 1분마다 실행');
+  Logger.log("트리거 생성 완료: main() 1분마다 실행");
 }
 
 function deleteTrigger() {
   ScriptApp.getProjectTriggers()
-    .filter(t => t.getHandlerFunction() === 'main')
-    .forEach(t => ScriptApp.deleteTrigger(t));
+    .filter((t) => t.getHandlerFunction() === "main")
+    .forEach((t) => ScriptApp.deleteTrigger(t));
 
-  Logger.log('트리거 삭제 완료');
+  Logger.log("트리거 삭제 완료");
 }
-
 
 // ==================== 시간 관리 ====================
 function getLastCheckTime() {
-  const stored = PropertiesService.getScriptProperties().getProperty(LAST_CHECK_KEY);
+  const stored =
+    PropertiesService.getScriptProperties().getProperty(LAST_CHECK_KEY);
   if (stored) return new Date(stored);
 
   // 첫 실행 시 1분 전부터 탐색
