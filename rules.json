@@ -1,0 +1,27 @@
+{
+  "rules": [
+    {
+      "name": "뉴스레터",
+      "conditions": {
+        "sender": ["newsletter@example.com", "no-reply@example.com"],
+        "keywords": ["뉴스레터", "구독", "newsletter"]
+      },
+      "match": "any",
+      "actions": {
+        "label": "뉴스레터",
+        "mark_read": true
+      }
+    },
+    {
+      "name": "광고메일",
+      "conditions": {
+        "keywords": ["광고", "[광고]", "프로모션", "할인"]
+      },
+      "match": "any",
+      "actions": {
+        "label": "광고",
+        "mark_read": true
+      }
+    }
+  ]
+}
