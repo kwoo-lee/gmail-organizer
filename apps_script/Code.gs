@@ -55,6 +55,7 @@ function processMessage(message, thread, rules) {
     }
     if (actions.label) {
       thread.addLabel(getOrCreateLabel(actions.label));
+      thread.moveToArchive(); // inbox에서 제거 (해당 라벨에서만 보이게)
     }
     if (actions.mark_read) {
       message.markRead();
