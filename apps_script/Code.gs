@@ -54,19 +54,23 @@ function processMessage(message, thread, rules) {
       Logger.log(
         `[TRASH] 규칙: '${rule.name}' | 발신: ${email.from} | 제목: ${email.subject}`,
       );
-      return; // 삭제된 메일은 이후 규칙 적용 불필요
+      return;
     }
     if (actions.label) {
       thread.addLabel(getOrCreateLabel(actions.label));
-      thread.moveToArchive(); // inbox에서 제거 (해당 라벨에서만 보이게)
+      thread.moveToArchive();
     }
-    if (actions.mark_read) {
+    if (actions.mark_read === true) {
       message.markRead();
+    } else if (actions.mark_read === false) {
+      message.markUnread();
     }
 
     Logger.log(
-      `[PROCESSED] 규칙: '${rule.name}' | 라벨: ${actions.label || "-"} | 읽음: ${actions.mark_read || false} | 발신: ${email.from} | 제목: ${email.subject}`,
+      `[PROCESSED] 규칙: '${rule.name}' | 라벨: ${actions.label || "-"} | 읽음: ${actions.mark_read ?? "-"} | 발신: ${email.from} | 제목: ${email.subject}`,
     );
+
+    if (actions.stop) return; // 이후 규칙 적용 중단
   }
 }
 
@@ -123,6 +127,19 @@ function setRules() {
         match: "any",
         actions: {
           trash: true,
+        },
+      },
+      {
+        name: "DBS 거래알림",
+        conditions: {
+          sender: ["ibanking.alert@dbs.com"],
+          keywords: ["Alerts"],
+        },
+        match: "all",
+        actions: {
+          label: "Singapore/Banks/DBS",
+          mark_read: false,
+          stop: true,
         },
       },
       {
@@ -190,10 +207,7 @@ function setRules() {
       {
         name: "택시",
         conditions: {
-          sender: [
-            "no-reply@grab.com",
-            "hailing@tada.global",
-          ],
+          sender: ["no-reply@grab.com", "hailing@tada.global"],
         },
         match: "any",
         actions: {
@@ -261,6 +275,31 @@ function printRules() {
   const json = PropertiesService.getScriptProperties().getProperty(RULES_KEY);
   Logger.log(json || "저장된 규칙이 없습니다.");
 }
+
+// ==================== 일회성 유틸리티 ====================
+// 받은편지함의 모든 메일을 읽음 처리 (한 번만 실행)
+function markAllAsRead() {
+  let start = 0;
+  const batchSize = 100;
+  let totalMarked = 0;
+
+  while (true) {
+    const threads = GmailApp.search("in:inbox is:unread", start, batchSize);
+    if (threads.length === 0) break;
+
+    for (const thread of threads) {
+      thread.markRead();
+      totalMarked++;
+    }
+
+    Logger.log(`${start + threads.length}개 스레드 처리 완료...`);
+    start += batchSize;
+    if (threads.length < batchSize) break;
+  }
+
+  Logger.log(`markAllAsRead 완료: 총 ${totalMarked}개 스레드 읽음 처리`);
+}
+
 
 // ==================== 전체 메일함 처리 ====================
 // 처음 한 번 수동으로 실행하여 기존 메일함 전체를 정리할 때 사용
