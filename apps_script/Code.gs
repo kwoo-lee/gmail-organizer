@@ -30,10 +30,26 @@ function main() {
     Logger.log(`${processedCount}개 메시지 처리 완료`);
   }
 
+  trashPromotions(lastCheckTime);
+
   PropertiesService.getScriptProperties().setProperty(
     LAST_CHECK_KEY,
     now.toISOString(),
   );
+}
+
+function trashPromotions(since) {
+  const query = `category:promotions after:${Math.floor(since.getTime() / 1000)}`;
+  const threads = GmailApp.search(query);
+  if (threads.length === 0) return;
+
+  for (const thread of threads) {
+    const subject = thread.getFirstMessageSubject();
+    thread.moveToTrash();
+    Logger.log(`[PROMOTIONS→TRASH] ${subject}`);
+  }
+
+  Logger.log(`Promotions ${threads.length}개 삭제 완료`);
 }
 
 // ==================== 메시지 처리 ====================
@@ -372,9 +388,9 @@ function createTrigger() {
     .filter((t) => t.getHandlerFunction() === "main")
     .forEach((t) => ScriptApp.deleteTrigger(t));
 
-  ScriptApp.newTrigger("main").timeBased().everyMinutes(1).create();
+  ScriptApp.newTrigger("main").timeBased().everyMinutes(2).create();
 
-  Logger.log("트리거 생성 완료: main() 1분마다 실행");
+  Logger.log("트리거 생성 완료: main() 2분마다 실행");
 }
 
 function deleteTrigger() {
