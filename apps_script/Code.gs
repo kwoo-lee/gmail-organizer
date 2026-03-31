@@ -38,6 +38,7 @@ function main() {
 
 // ==================== 메시지 처리 ====================
 function processMessage(message, thread, rules) {
+  if (!message) return;
   const email = {
     from: message.getFrom(),
     subject: message.getSubject(),
@@ -165,6 +166,18 @@ function setRules() {
         },
       },
       {
+        name: "Citi 거래알림",
+        conditions: {
+          sender: ["alerts@citibank.com.sg"],
+          keywords: ["Alerts"],
+        },
+        match: "any",
+        actions: {
+          label: "Singapore/Banks/Citi",
+          mark_read: false,
+        },
+      },
+      {
         name: "Citi 은행알림",
         conditions: {
           sender: ["alerts@citibank.com.sg"],
@@ -196,6 +209,7 @@ function setRules() {
             "no-reply@fairprice.com.sg",
             "no-reply@lockeralliance.net",
             "shipment-tracking@amazon.sg",
+            "noreply@info.iherb.com",
           ],
         },
         match: "any",
@@ -240,7 +254,10 @@ function setRules() {
       {
         name: "Moomoo",
         conditions: {
-          sender: ["no_reply@stmt.sg.moomoo.com"],
+          sender: [
+            "no_reply@stmt.sg.moomoo.com",
+            "no_reply@notification.sg.moomoo.com",
+          ],
         },
         match: "any",
         actions: {
@@ -300,7 +317,6 @@ function markAllAsRead() {
   Logger.log(`markAllAsRead 완료: 총 ${totalMarked}개 스레드 읽음 처리`);
 }
 
-
 // ==================== 전체 메일함 처리 ====================
 // 처음 한 번 수동으로 실행하여 기존 메일함 전체를 정리할 때 사용
 function processAll() {
@@ -320,7 +336,10 @@ function processAll() {
     if (threads.length === 0) break;
 
     for (const thread of threads) {
+      let threadDone = false;
       for (const message of thread.getMessages()) {
+        if (threadDone) break;
+        if (!message) continue;
         const email = {
           from: message.getFrom(),
           subject: message.getSubject(),
@@ -329,6 +348,8 @@ function processAll() {
         if (matchedRules.length > 0) {
           processMessage(message, thread, rules);
           totalMatched++;
+          // trash 규칙이 적용됐으면 이 thread의 나머지 메시지 스킵
+          if (matchedRules.some(r => r.actions && r.actions.trash)) threadDone = true;
         }
         totalProcessed++;
       }
